@@ -1,0 +1,1 @@
+npx cdk deploy --region us-east-1
