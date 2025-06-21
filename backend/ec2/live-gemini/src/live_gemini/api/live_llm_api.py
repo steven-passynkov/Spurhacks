@@ -10,6 +10,8 @@ from google.genai.types import Content, LiveConnectConfig, Modality, Part, Speec
 from ..tools.retrieve_products_tool import RetrieveProductsTool
 from typing import Any, Optional
 
+from ..utils.global_store import GlobalStore
+
 
 class LLMApi:
     def __init__(self, credentials, project_id):
