@@ -2,7 +2,9 @@ from .api.live_llm_api import LLMApi
 from .constants.prompts import INITIAL_USER_PROMPT, FINAL_USER_PROMPT
 from .enums.message_types import MessageType
 from .tools.retrieve_products_tool import RetrieveProductsTool
-from .utils.global_store import GlobalStore  # Import GlobalStore
+from .tools.validate_products_tool import ValidateProductsTool
+from .utils.global_store import GlobalStore
+
 
 class ProductAgent:
     def __init__(self, llm_api: LLMApi):
@@ -27,8 +29,6 @@ class ProductAgent:
             #     print("User interaction interrupted.")
             #     return
             if response.get("type") == MessageType.AUDIO.value or response.get("type") == MessageType.TEXT.value:
-                conversation_history.append({'role': 'assistant', 'content': response.get("content", "")})
-                self.global_store.set("conversation_history", conversation_history)
                 yield response
             if response.get("type") == MessageType.TOOL_RESPONSE.value:
                 if response.get("tool_name") == "retrieve_products":
@@ -43,7 +43,15 @@ class ProductAgent:
                 [f"{entry['role']}: {entry['content']}" for entry in conversation_history]
             )
         )
+        first_yield = True
         async for response in self.llm_api.live_chat(final_prompt):
-            conversation_history.append({'role': 'assistant', 'content': response.get("content", "")})
-            self.global_store.set("conversation_history", conversation_history)
+            if response.get("type") == MessageType.TOOL_RESPONSE.value:
+                if response.get("tool_name") == "validate_products" and first_yield:
+                    validation_result = ValidateProductsTool.execute(response, products_response)
+                    yield {
+                        "type": "products_response",
+                        "data": validation_result
+                    }
+                    first_yield = False
+
             yield response

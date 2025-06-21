@@ -1,13 +1,13 @@
 import asyncio
 import base64
 import vertexai
-# from constants.prompts import SYSTEM_INSTRUCTION_TEMPLATE
-from datetime import datetime
+from ..constants.prompts import SYSTEM_INSTRUCTION_TEMPLATE
 from ..enums.message_types import MessageType
 from google import genai
 from google.genai.types import Content, LiveConnectConfig, Modality, Part, SpeechConfig, VoiceConfig, \
     PrebuiltVoiceConfig, RealtimeInputConfig, AutomaticActivityDetection, StartSensitivity, EndSensitivity
 from ..tools.retrieve_products_tool import RetrieveProductsTool
+from ..tools.validate_products_tool import ValidateProductsTool
 from typing import Any, Optional
 
 from ..utils.global_store import GlobalStore
@@ -20,18 +20,18 @@ class LLMApi:
         self.store = GlobalStore()
         self.session = None
 
-        company_info = self.store.get("company_info", {})
-        # formatted_instruction = SYSTEM_INSTRUCTION_TEMPLATE.format(
-        #     company_name=company_info.get("companyName"),
-        #     industry=company_info.get("industry"),
-        #     timezone=company_info.get("timezone"),
-        #     current_datetime=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        # )
+        company_info = self.store.get("company_info")
+
+        formatted_instruction = SYSTEM_INSTRUCTION_TEMPLATE.format(
+            company_name=company_info.get("companyName"),
+            industry=company_info.get("industry")
+        )
 
         self.base_config = {
-            # "system_instruction": formatted_instruction,
+            "system_instruction": formatted_instruction,
             "tools": [{"function_declarations": [
-                RetrieveProductsTool.set_tool_config()
+                RetrieveProductsTool.set_tool_config(),
+                ValidateProductsTool.set_tool_config()
             ]}],
         }
         self._connection = None
@@ -127,6 +127,7 @@ class LLMApi:
 
             current_assistant_message = ""
             seen_texts = set()
+            last_sent_transcript = ""
 
             try:
                 async for message in self.session.receive():
@@ -148,7 +149,6 @@ class LLMApi:
                                 if hasattr(message.server_content.output_transcription, 'text'):
                                     text = message.server_content.output_transcription.text
                                     if text and text != "None" and text not in seen_texts:
-                                        print(f"Assistant: {text}")
                                         current_assistant_message += text
                                         seen_texts.add(text)
 
@@ -161,11 +161,20 @@ class LLMApi:
                                             part.inline_data and
                                             hasattr(part.inline_data, 'data') and
                                             part.inline_data.data):
+                                        new_transcript = current_assistant_message[len(last_sent_transcript):].strip()
+                                        if not new_transcript:
+                                            new_transcript = None
+
                                         audio_message = {
                                             "type": MessageType.AUDIO.value,
                                             "message": base64.b64encode(part.inline_data.data).decode('utf-8'),
+                                            "transcript": new_transcript,
                                             "mimeType": f"{part.inline_data.mime_type};rate=24000"
                                         }
+
+                                        if new_transcript:
+                                            last_sent_transcript = current_assistant_message
+
                                         yield audio_message
 
                     if self.current_modality == Modality.TEXT:

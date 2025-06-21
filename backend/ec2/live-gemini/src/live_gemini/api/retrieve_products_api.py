@@ -36,7 +36,7 @@ async def retrieve_products_api(query: str):
             }
         ]
     }
-    print(body_req)
+
     try:
         async with httpx.AsyncClient() as client:
             resp = await client.post(url, headers=headers, json=body_req)

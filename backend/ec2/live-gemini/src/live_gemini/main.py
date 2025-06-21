@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from google.oauth2 import service_account
 from requests_aws4auth import AWS4Auth
 from google.genai.types import Modality
+from pydantic import BaseModel
 
 from .api.live_llm_api import LLMApi
 from .agent import ProductAgent
@@ -52,6 +53,11 @@ def get_aws_auth():
 async def startup_event():
     aws_auth = get_aws_auth()
     store.set("aws_auth", aws_auth)
+
+
+class MessageRequest(BaseModel):
+    message: str
+    mimeType: str
 
 
 @app.websocket("/")
@@ -123,8 +129,9 @@ async def websocket_endpoint(websocket: WebSocket):
     try:
         while True:
             try:
-                data = await websocket.receive_text()
-                async for chunk in product_agent.answer_user(data):
+                data = await websocket.receive_json()
+                message_request = MessageRequest(**data)
+                async for chunk in product_agent.answer_user(message_request.message):
                     if chunk and isinstance(chunk, dict):
                         await websocket.send_text(json.dumps(chunk))
             except WebSocketDisconnect:
