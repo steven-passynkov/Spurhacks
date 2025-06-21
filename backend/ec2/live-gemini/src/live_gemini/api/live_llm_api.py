@@ -49,7 +49,7 @@ class LLMApi:
                     config = LiveConnectConfig(
                         response_modalities=[modality],
                         tools=self.base_config["tools"],
-                        system_instruction=self.base_config["system_instruction"],
+                        # system_instruction=self.base_config["system_instruction"],
                         speech_config=SpeechConfig(
                             voice_config=VoiceConfig(
                                 prebuilt_voice_config=PrebuiltVoiceConfig(
