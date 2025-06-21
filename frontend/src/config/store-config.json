@@ -1,0 +1,25 @@
+{
+  "theme": {
+    "primaryColor": "blue",
+    "backgroundColor": "white",
+    "textColor": "gray-900",
+    "accentColor": "blue-600"
+  },
+  "welcome": {
+    "title": "Welcome to our Store",
+    "subtitle": "Ask me anything about our products and I'll help you find what you need!",
+    "showBotIcon": true
+  },
+  "chat": {
+    "placeholder": "Ask me about products, sizes, availability, returns...",
+    "enableAudio": true,
+    "autoPlayAudio": true
+  },
+  "products": {
+    "showOnHomepage": true,
+    "homepageLimit": 4,
+    "showRatings": true,
+    "showBrand": true,
+    "currency": "USD"
+  }
+}

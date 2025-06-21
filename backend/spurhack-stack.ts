@@ -63,6 +63,15 @@ export class Spurhack extends Stack {
             'Allow WebSocket'
         );
 
+        webserverSG.addIngressRule(
+            ec2.Peer.anyIpv4(),
+            ec2.Port.tcp(22),
+            'Allow SSH access'
+        );
+
+        const keyPair = ec2.KeyPair.fromKeyPairName(this, 'KeyPair', 'spurhacks');
+
+
         const instance = new ec2.Instance(this, 'spurhacks-websocket', {
             vpc,
             vpcSubnets: {
@@ -70,9 +79,11 @@ export class Spurhack extends Stack {
             },
             securityGroup: webserverSG,
             instanceType: ec2.InstanceType.of(ec2.InstanceClass.T2, ec2.InstanceSize.MICRO),
-            machineImage: new ec2.AmazonLinuxImage({
-                generation: ec2.AmazonLinuxGeneration.AMAZON_LINUX_2
-            }),
+            // machineImage: new ec2.AmazonLinuxImage({
+            //     generation: ec2.AmazonLinuxGeneration.AMAZON_LINUX_2
+            // }),
+            machineImage: ec2.MachineImage.latestAmazonLinux2023(),
+            keyPair: keyPair
         });
 
         new CfnOutput(this, 'InstancePublicIP', {
