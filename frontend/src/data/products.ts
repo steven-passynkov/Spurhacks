@@ -15,8 +15,6 @@ export const mockProducts: Product[] = [
         createdAt: "2024-01-15T10:00:00Z",
         updatedAt: "2024-01-20T14:30:00Z",
         inStock: true,
-        colors: ["Black", "Navy", "Red"],
-        sizes: ["S", "M", "L", "XL", "XXL"],
         reviews: [
             { user: "Alice", rating: 5, comment: "Great jacket!" },
             { user: "Bob", rating: 4, comment: "Very comfortable." },

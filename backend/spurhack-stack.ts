@@ -1,9 +1,16 @@
-import { Stack, StackProps, RemovalPolicy, CfnOutput } from 'aws-cdk-lib';
+import { CfnOutput, Duration, RemovalPolicy, Stack, StackProps } from 'aws-cdk-lib';
+import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import { EbsDeviceVolumeType } from 'aws-cdk-lib/aws-ec2';
 import { Domain, EngineVersion } from 'aws-cdk-lib/aws-opensearchservice';
 import { Construct } from 'constructs';
 import * as s3 from 'aws-cdk-lib/aws-s3';
-import * as ec2 from 'aws-cdk-lib/aws-ec2';
+import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as iam from 'aws-cdk-lib/aws-iam';
+import * as path from 'path';
+import * as apigateway from 'aws-cdk-lib/aws-apigateway';
+import * as dotenv from 'dotenv';
+
+dotenv.config({path: path.resolve(__dirname, './.env')});
 
 export class Spurhack extends Stack {
 
@@ -18,7 +25,7 @@ export class Spurhack extends Stack {
             autoDeleteObjects: true
         });
 
-        new Domain(this, 'spurhacks', {
+        const opensearchDomain = new Domain(this, 'spurhacks', {
             version: EngineVersion.OPENSEARCH_2_11,
             domainName: `spurhacks-domain`,
             removalPolicy: RemovalPolicy.DESTROY,
@@ -90,5 +97,53 @@ export class Spurhack extends Stack {
             value: instance.instancePublicIp,
             description: 'Public IP of the EC2 instance',
         });
+
+
+        // Create API Gateway before Lambda
+        const api = new apigateway.RestApi(this, 'SpurhacksApi', {
+            restApiName: 'Spurhacks Service',
+            defaultCorsPreflightOptions: {
+                allowOrigins: apigateway.Cors.ALL_ORIGINS,
+                allowMethods: apigateway.Cors.ALL_METHODS,
+                allowHeaders: ['*'],
+            },
+        });
+
+        const searchFn = new lambda.Function(this, 'SearchFn', {
+            runtime: lambda.Runtime.NODEJS_20_X,
+            handler: 'index.handler',
+            code: lambda.Code.fromAsset(path.join(__dirname, './lambda/searchFn/src')),
+            timeout: Duration.minutes(3),
+            memorySize: 1024,
+            environment: {
+                OPENSEARCH_COLLECTION_ENDPOINT: `https://${opensearchDomain.domainEndpoint}`,
+                INDEX_NAME: 'spurhacks',
+                S3_BUCKET: mediaBucket.bucketName,
+                GOOGLE_SERVICE_ACCOUNT: process.env.GOOGLE_SERVICE_ACCOUNT || '',
+                GOOGLE_PROJECT_ID: process.env.GOOGLE_PROJECT_ID || ''
+            }
+        });
+
+        const searchIntegration = new apigateway.LambdaIntegration(searchFn);
+        const searchResource = api.root.addResource('search');
+        searchResource.addMethod('GET', searchIntegration);
+        searchResource.addMethod('POST', searchIntegration);
+
+        mediaBucket.grantReadWrite(searchFn);
+
+        opensearchDomain.grantReadWrite(searchFn);
+
+        searchFn.addToRolePolicy(new iam.PolicyStatement({
+            actions: [
+                's3:GetObject',
+                's3:PutObject',
+                's3:DeleteObject',
+                'es:ESHttpPost',
+                'es:ESHttpPut',
+                'es:ESHttpGet',
+                'es:ESHttpDelete'
+            ],
+            resources: ['*']
+        }));
     }
 }
