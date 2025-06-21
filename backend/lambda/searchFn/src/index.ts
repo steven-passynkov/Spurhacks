@@ -24,7 +24,7 @@ const client = new Client({
     node: OPENSEARCH_COLLECTION_ENDPOINT
 });
 
-const s3 = new S3Client({ region: AWS_REGION });
+const s3 = new S3Client({region: AWS_REGION});
 
 const googleAuth = new GoogleAuth({
     scopes: 'https://www.googleapis.com/auth/cloud-platform',
@@ -40,7 +40,7 @@ async function uploadImages(images: string[], companyId: string, sku: string): P
     return Promise.all(images.map(async (img, idx) => {
         let buffer: Buffer, contentType: string, extension: string;
         if (/^https?:\/\//.test(img)) {
-            const response = await axios.get(img, { responseType: 'arraybuffer' });
+            const response = await axios.get(img, {responseType: 'arraybuffer'});
             buffer = Buffer.from(response.data);
             contentType = response.headers['content-type'] || 'application/octet-stream';
             extension = contentType.split('/')[1] || 'jpg';
@@ -134,15 +134,22 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
                             function_score: {
                                 query: {
                                     bool: {
-                                        must: [{ match: { companyId } }]
+                                        must: [{match: {companyId}}]
                                     }
                                 },
-                                functions: [{ random_score: { seed: randomSeed } }]
+                                functions: [{random_score: {seed: randomSeed}}]
                             }
                         }
                     }
                 });
-                body = response.body;
+                const items = response.body?.hits?.hits?.map((hit: any) => {
+                    if (hit._source) {
+                        const {embedding, ...rest} = hit._source;
+                        return rest;
+                    }
+                    return {};
+                }) || [];
+                body = items;
                 break;
             }
 
@@ -157,10 +164,10 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
                 const items = Array.isArray(data) ? data : [data];
                 const results = await Promise.all(items.map(async (item) => {
                     const parsed = productSchema.safeParse(item);
-                    if (!parsed.success) return { success: false, error: parsed.error.errors };
+                    if (!parsed.success) return {success: false, error: parsed.error.errors};
                     let doc = parsed.data as Record<string, any>;
                     doc.companyId = companyId;
-                    
+
                     if (doc.images && Array.isArray(doc.images) && doc.images.length > 0) {
                         try {
                             doc.images = await uploadImages(doc.images, companyId, doc.sku);
@@ -168,8 +175,8 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
                             throw new ServerError(500, 'Failed to upload one or more images');
                         }
                     }
-                    
-                    const { images, ...docWithoutImages } = doc;
+
+                    const {images, ...docWithoutImages} = doc;
                     try {
                         doc.embedding = await fetchEmbedding(docWithoutImages, googleAccessToken);
                     } catch (e) {
@@ -179,7 +186,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
                     const now = new Date().toISOString();
                     doc.createdAt = now;
                     doc.updatedAt = now;
-                    
+
                     const filteredDoc: any = {};
                     for (const key of allowedFields) {
                         if (doc[key] !== undefined) filteredDoc[key] = doc[key];
@@ -190,17 +197,17 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
                             index: INDEX_NAME,
                             body: filteredDoc
                         });
-                        return { success: true };
+                        return {success: true};
                     } catch {
                         throw new ServerError(500, 'Failed to index document');
                     }
                 }));
-                body = { results };
+                body = {results};
                 break;
             }
         }
     } catch (error: any) {
-        ({ statusCode, body } = handleError(error));
+        ({statusCode, body} = handleError(error));
     }
     return {
         statusCode,
