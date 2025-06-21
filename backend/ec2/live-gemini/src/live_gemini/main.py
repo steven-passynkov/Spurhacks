@@ -66,9 +66,15 @@ async def websocket_endpoint(websocket: WebSocket):
 
     store.clear()
 
-    company_id = websocket.headers.get("company-id")
-    if not company_id:
-        await websocket.close(code=4001, reason="Missing company-id header")
+    try:
+        initial_data = await websocket.receive_json()
+        company_id = initial_data.get("company-id")
+        if not company_id:
+            await websocket.close(code=4001, reason="Missing company-id in initial message")
+            return
+    except Exception as e:
+        print(f"Error receiving initial message: {e}")
+        await websocket.close(code=4001, reason="Invalid initial message format")
         return
 
     config_url = f"https://spurhacks-company.s3.us-east-1.amazonaws.com/{company_id}/config.json"
