@@ -1,43 +1,22 @@
-mport asyncio
+import asyncio
 import base64
-import json
-import os
-from datetime import datetime
-from typing import Any, Optional
-
-import google
 import vertexai
 from constants.prompts import SYSTEM_INSTRUCTION_TEMPLATE
-from deepgram import (
-    DeepgramClient,
-    PrerecordedOptions,
-    FileSource,
-)
-from dotenv import load_dotenv
+from datetime import datetime
 from enums.message_types import MessageType
 from google import genai
 from google.genai.types import Content, LiveConnectConfig, Modality, Part, SpeechConfig, VoiceConfig, \
     PrebuiltVoiceConfig, RealtimeInputConfig, AutomaticActivityDetection, StartSensitivity, EndSensitivity
-from tools.agent_selector_tool import AgentSelectorTool
-from tools.booking_state_tool import BookingStateTool
-from tools.cancellation_tool import CancellationTool
-from tools.customer_info_tool import CustomerInfoTool
-from tools.mention_tracker_tool import MentionTrackerTool
-from utils.global_store import GlobalStore
-
-load_dotenv()
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-DEEPGRAM_API_KEY = os.getenv("DEEPGRAM_API_KEY")
+from tools.tools import RetrieveProductsTool
+from typing import Any, Optional
 
 
 class LLMApi:
-    def __init__(self):
-        credentials, project_id = google.auth.default()
-        vertexai.init(project=project_id, location="us-central1")
-        self.client = genai.Client(project=project_id, location='us-central1', vertexai=True)
+    def __init__(self, credentials, project_id):
+        vertexai.init(project=project_id, location="us-central1", credentials=credentials)
+        self.client = genai.Client(project=project_id, location='us-central1', vertexai=True, credentials=credentials)
         self.store = GlobalStore()
         self.session = None
-        self.deepgram = DeepgramClient(api_key=DEEPGRAM_API_KEY)
 
         company_info = self.store.get("company_info", {})
         formatted_instruction = SYSTEM_INSTRUCTION_TEMPLATE.format(
@@ -50,11 +29,7 @@ class LLMApi:
         self.base_config = {
             "system_instruction": formatted_instruction,
             "tools": [{"function_declarations": [
-                AgentSelectorTool.set_tool_config(),
-                BookingStateTool.set_tool_config(),
-                CustomerInfoTool.set_tool_config(),
-                MentionTrackerTool.set_tool_config(),
-                CancellationTool.set_tool_config()
+                RetrieveProductsTool.set_tool_config()
             ]}],
         }
         self._connection = None
@@ -129,86 +104,6 @@ class LLMApi:
                 "arguments": function_call.args
             })
         return responses
-
-    # async def transcribe_audio(self, base64_str: str, mime_type: str) -> str:
-    #     try:
-    #         if not self.session:
-    #             raise Exception("No active session. WebSocket connection may have been lost.")
-    #         audio_data = base64.b64decode(base64_str)
-    #
-    #         await self.session.send_realtime_input(
-    #             media=google.genai.types.Blob(
-    #                 data=audio_data,
-    #                 mime_type=mime_type,
-    #             )
-    #         )
-    #
-    #         # await self.session.send_realtime_input(audio_stream_end=True)
-    #
-    #         # transcription = ""
-    #         # async for response in self.session.receive():
-    #         #     print(f"Received response: {response}")
-    #         #     if (hasattr(response, 'server_content') and
-    #         #             response.server_content and
-    #         #             hasattr(response.server_content, 'input_transcription')):
-    #         #         transcription = response.server_content.input_transcription
-    #         #         if transcription:
-    #         #             return transcription
-    #         #
-    #         # if transcription:
-    #         #     return transcription
-    #
-    #
-    #     except Exception as e:
-    #         print(f"Transcription Error: {e}")
-    #         raise
-
-    async def transcribe_audio(self, base64_str: str, mime_type: str) -> str:
-        try:
-            audio_data = base64.b64decode(base64_str)
-
-            sample_rate = 16000
-            if ";rate=" in mime_type:
-                try:
-                    sample_rate = int(mime_type.split(";rate=")[1])
-                except:
-                    pass
-
-            payload: FileSource = {
-                "buffer": audio_data,
-                "mimetype": "audio/l16",
-                "encoding": "linear16",
-                "sample_rate": sample_rate,
-                "channels": 1,
-                "bits_per_sample": 16
-            }
-
-            options = PrerecordedOptions(
-                model="nova-3",
-                smart_format=True,
-                language="en-US",
-                encoding="linear16",
-                sample_rate=sample_rate
-            )
-            response = self.deepgram.listen.rest.v("1").transcribe_file(
-                payload,
-                options
-            )
-
-            if (response and hasattr(response, 'results') and
-                    hasattr(response.results, 'channels') and
-                    len(response.results.channels) > 0 and
-                    len(response.results.channels[0].alternatives) > 0):
-                transcription = response.results.channels[0].alternatives[0].transcript
-                print(f"Transcription: {transcription}")
-                return transcription
-
-            raise Exception("No transcription received")
-
-        except Exception as e:
-            print(f"Transcription Error: {e}")
-            print(f"Input mime_type was: {mime_type}")
-            raise
 
     async def live_chat(
             self,
@@ -319,5 +214,11 @@ class LLMApi:
                 "content": f"Error during live chat: {e}"
             }
 
-llm_api = LLMApi()
+
+from utils.global_store import GlobalStore
+
+store = GlobalStore()
+credentials = store.get("google_credentials")
+project_id = store.get("google_project_id")
+llm_api = LLMApi(credentials, project_id)
 llm_live_api = llm_api

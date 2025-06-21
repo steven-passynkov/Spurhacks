@@ -1,5 +1,3 @@
-# store data in python code --> access everywhere
-
 class GlobalStore:
     _instance = None
     _store = {}
@@ -14,3 +12,6 @@ class GlobalStore:
 
     def get(self, key, default=None):
         return self._store.get(key, default)
+
+    def clear(self):
+        self._store.clear()
