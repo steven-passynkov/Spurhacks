@@ -130,7 +130,6 @@ class LLMApi:
 
             try:
                 async for message in self.session.receive():
-                    print(message)
                     if (hasattr(message, 'server_content') and
                             message.server_content and
                             hasattr(message.server_content, 'interrupted')):

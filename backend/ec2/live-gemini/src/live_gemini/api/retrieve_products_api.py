@@ -1,15 +1,17 @@
 import httpx
 import os
 from dotenv import load_dotenv
-from opensearchpy import RequestsHttpConnection
-from opensearchpy._async.client import AsyncOpenSearch
+from requests_aws4auth import AWS4Auth
+
 from ..utils.global_store import GlobalStore
 
 load_dotenv()
 
 OPENSEARCH_COLLECTION_ENDPOINT = os.getenv("OPENSEARCH_COLLECTION_ENDPOINT")
-OPENSEARCH_EMBEDDING_FIELD = os.getenv("OPENSEARCH_EMBEDDING_FIELD")
 INDEX_NAME = os.getenv("INDEX_NAME")
+AWS_ACCESS_KEY = os.getenv("AWS_ACCESS_KEY")
+AWS_SECRET_KEY = os.getenv("AWS_SECRET_KEY")
+AWS_REGION = os.getenv("AWS_REGION")
 
 
 async def retrieve_products_api(query: str):
@@ -20,8 +22,6 @@ async def retrieve_products_api(query: str):
         return {"error": "Google access token not found in global store."}
 
     project_id = os.getenv("GOOGLE_PROJECT_ID")
-    if not project_id:
-        return {"error": "GOOGLE_PROJECT_ID not set in environment."}
 
     url = f"https://us-central1-aiplatform.googleapis.com/v1/projects/{project_id}/locations/us-central1/publishers/google/models/text-embedding-005:predict"
     headers = {
@@ -36,6 +36,7 @@ async def retrieve_products_api(query: str):
             }
         ]
     }
+    print(body_req)
     try:
         async with httpx.AsyncClient() as client:
             resp = await client.post(url, headers=headers, json=body_req)
@@ -45,38 +46,53 @@ async def retrieve_products_api(query: str):
     except Exception as e:
         return {"error": f"Failed to get embedding: {e}"}
 
-    aws_auth = store.get("aws_auth")
-    async with AsyncOpenSearch(
-        hosts=[{'host': OPENSEARCH_COLLECTION_ENDPOINT, 'port': 443}],
-        http_auth=aws_auth,
-        use_ssl=True,
-        verify_certs=True,
-        connection_class=RequestsHttpConnection
-    ) as client:
-        query_body = {
-            "size": 4,
-            "query": {
-                "knn": {
-                    OPENSEARCH_EMBEDDING_FIELD: {
-                        "vector": embedding,
-                        "k": 4
+    aws_auth = AWS4Auth(AWS_ACCESS_KEY, AWS_SECRET_KEY, AWS_REGION, 'es')
+
+    company_id = store.get("company_info")["companyId"]
+
+    query_body = {
+        "size": 4,
+        "query": {
+            "bool": {
+                "must": [
+                    {
+                        "knn": {
+                            "embedding": {
+                                "vector": embedding,
+                                "k": 4
+                            }
+                        }
                     }
-                }
+                ],
+                "filter": [
+                    {
+                        "term": {
+                            "companyId": company_id
+                        }
+                    }
+                ]
             }
         }
+    }
 
-        try:
-            response = await client.search(
-                body=query_body,
-                index=INDEX_NAME
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"https://{OPENSEARCH_COLLECTION_ENDPOINT}/{INDEX_NAME}/_search",
+                auth=aws_auth,
+                json=query_body,
+                headers={"Content-Type": "application/json"}
             )
-            results = response['hits']['hits']
+            response.raise_for_status()
+            data = response.json()
+            results = data['hits']['hits']
+
             for hit in results:
-                if "embeddings" in hit["_source"]:
-                    del hit["_source"]["embeddings"]
-        except Exception as e:
-            print(f"Error querying OpenSearch: {e}")
-            results = None
+                if "_source" in hit and "embedding" in hit["_source"]:
+                    del hit["_source"]["embedding"]
+    except Exception as e:
+        print(f"Error querying OpenSearch: {e}")
+        results = None
 
     return {
         "results": results

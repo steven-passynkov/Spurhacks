@@ -21,7 +21,5 @@ class RetrieveProductsTool:
 
     @staticmethod
     async def execute(tool_call: Dict[str, Any]) -> Dict[str, Any]:
-        query = tool_call.get("query")
-        if not query:
-            return {"error": "Missing 'query' parameter."}
+        query = tool_call.get("arguments").get("query")
         return await retrieve_products_api(query)

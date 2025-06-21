@@ -2,9 +2,9 @@ class GlobalStore:
     _instance = None
     _store = {}
 
-    def new(cls):
+    def __new__(cls):
         if cls._instance is None:
-            cls._instance = super(GlobalStore, cls).new(cls)
+            cls._instance = super(GlobalStore, cls).__new__(cls)
         return cls._instance
 
     def set(self, key, value):
@@ -15,3 +15,4 @@ class GlobalStore:
 
     def clear(self):
         self._store.clear()
+        self.set("conversation_history", [])

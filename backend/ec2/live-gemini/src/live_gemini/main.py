@@ -10,8 +10,10 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from google.oauth2 import service_account
 from requests_aws4auth import AWS4Auth
+from google.genai.types import Modality
 
 from .api.live_llm_api import LLMApi
+from .agent import ProductAgent
 from .utils.global_store import GlobalStore
 
 load_dotenv()
@@ -107,9 +109,10 @@ async def websocket_endpoint(websocket: WebSocket):
     active_connections.append(websocket)
 
     llm_live_api = LLMApi(credentials, project_id)
+    product_agent = ProductAgent(llm_live_api)
 
     try:
-        await llm_live_api.get_session()
+        await llm_live_api.get_session(modality=Modality.AUDIO)
     except Exception as e:
         print(f"Error creating session: {e}")
         await websocket.close()
@@ -118,14 +121,12 @@ async def websocket_endpoint(websocket: WebSocket):
         return
 
     try:
-        response = {"message": "hi"}
-        await websocket.send_text(json.dumps(response))
-
         while True:
             try:
                 data = await websocket.receive_text()
-                response = {"message": "hi"}
-                await websocket.send_text(json.dumps(response))
+                async for chunk in product_agent.answer_user(data):
+                    if chunk and isinstance(chunk, dict):
+                        await websocket.send_text(json.dumps(chunk))
             except WebSocketDisconnect:
                 break
             except Exception as e:
