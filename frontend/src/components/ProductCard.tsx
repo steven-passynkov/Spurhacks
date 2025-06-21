@@ -13,13 +13,23 @@ interface ProductCardProps {
 }
 
 export const ProductCard = ({
-                                product,
-                                onClick,
-                                showBrand = true,
-                                showRatings = true,
-                                currency = "USD",
-                                compact = false,
-                            }: ProductCardProps) => {
+    product,
+    onClick,
+    showBrand = true,
+    showRatings = true,
+    currency = "USD",
+    compact = false,
+}: ProductCardProps) => {
+    // Calculate average rating and review count
+    const reviewCount = product.reviews?.length ?? 0
+    const avgRating =
+        reviewCount > 0
+            ? (
+                  product.reviews.reduce((sum, r) => sum + (r.rating ?? 0), 0) /
+                  reviewCount
+              ).toFixed(1)
+            : null
+
     return (
         <div
             onClick={() => onClick(product)}
@@ -33,31 +43,30 @@ export const ProductCard = ({
 
             {showBrand && <div className="text-xs text-gray-500 mb-2">{product.brand}</div>}
 
-            {showRatings && product.rating && (
+            {showRatings && avgRating && (
                 <div className="flex items-center gap-1 mb-2">
                     <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                     <span className="text-sm text-gray-600">
-            {product.rating} ({product.reviews})
-          </span>
+                        {avgRating} ({reviewCount})
+                    </span>
                 </div>
             )}
 
             <div className={`flex items-center ${compact ? "justify-between" : "gap-2"}`}>
-        <span className="font-bold text-lg">
-          {currency} {product.price}
-        </span>
+                <span className="font-bold text-lg">
+                    {currency} {product.price}
+                </span>
+                {!product.inStock && (
+                    <Badge variant="secondary" className="ml-2 flex items-center">
+                        Out of Stock
+                    </Badge>
+                )}
                 {compact && (
                     <Button size="sm" variant="outline" className="h-8 px-2">
                         <ShoppingCart className="w-4 h-4" />
                     </Button>
                 )}
             </div>
-
-            {!product.inStock && (
-                <Badge variant="secondary" className="mt-2">
-                    Out of Stock
-                </Badge>
-            )}
         </div>
     )
 }

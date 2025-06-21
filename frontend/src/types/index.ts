@@ -19,8 +19,6 @@ export interface Product {
     currency: string
     createdAt: string
     updatedAt: string
-    rating?: number
-    reviews?: number
     inStock?: boolean
     colors?: string[]
     sizes?: string[]
@@ -29,6 +27,11 @@ export interface Product {
         section: string
         shelf: string
     }
+    reviews?: {
+        user: string
+        rating: number
+        comment: string
+    }[]
 }
 
 export interface StoreConfig {
