@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from google.oauth2 import service_account
 from requests_aws4auth import AWS4Auth
 
-from .api.live_llm_api import llm_live_api
+from .api.live_llm_api import LLMApi
 from .utils.global_store import GlobalStore
 
 load_dotenv()
@@ -105,6 +105,8 @@ async def websocket_endpoint(websocket: WebSocket):
     store.set("google_credentials", credentials)
     store.set("google_project_id", project_id)
     active_connections.append(websocket)
+
+    llm_live_api = LLMApi(credentials, project_id)
 
     try:
         await llm_live_api.get_session()

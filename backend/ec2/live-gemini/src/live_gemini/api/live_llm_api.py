@@ -213,12 +213,3 @@ class LLMApi:
                 "type": MessageType.ERROR.value,
                 "content": f"Error during live chat: {e}"
             }
-
-
-from ..utils.global_store import GlobalStore
-
-store = GlobalStore()
-credentials = store.get("google_credentials")
-project_id = store.get("google_project_id")
-llm_api = LLMApi(credentials, project_id)
-llm_live_api = llm_api
