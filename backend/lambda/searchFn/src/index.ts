@@ -55,7 +55,8 @@ async function uploadImages(images: string[], companyId: string, sku: string): P
             extension = 'jpg';
             contentType = 'image/jpeg';
         }
-        const key = `${companyId}/${sku}_${idx}.${extension}`;
+
+        const key = `${companyId}/media/${sku}_${idx}.${extension}`;
         await s3.send(new PutObjectCommand({
             Bucket: S3_BUCKET,
             Key: key,

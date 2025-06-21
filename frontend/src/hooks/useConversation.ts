@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react"
-import type { Message, Product } from "../types"
+import type { Message } from "../types"
 
 export function useConversation() {
   const [messages, setMessages] = useState<Message[]>([])

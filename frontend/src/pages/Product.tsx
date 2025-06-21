@@ -1,38 +1,39 @@
-import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
+import { useEffect } from "react"
 import { ProductModal } from "../components/ProductModal"
-import { mockProducts } from "../data/products"
-import type { Product } from "../types"
+import { useProductCache } from "../hooks/useProductCache"
 
 function Product() {
-  const { sku } = useParams<{ sku: string }>()
+  const { sku, companyId } = useParams<{ sku: string; companyId: string }>()
   const navigate = useNavigate()
-  const [product, setProduct] = useState<Product | null>(null)
+  const { getProductBySku } = useProductCache()
+  const product = getProductBySku(sku)
 
   useEffect(() => {
-    if (sku) {
-      const foundProduct = mockProducts.find((p) => p.sku === sku)
-      setProduct(foundProduct || null)
+    if (!product) {
+      if (companyId) {
+        navigate(`/${companyId}`, { replace: true })
+      } else {
+        navigate("/", { replace: true })
+      }
     }
-  }, [sku])
+  }, [product, companyId, navigate])
 
   const handleModalClose = () => {
-    navigate("/")
-  }
-
-  // If product not found, redirect to home
-  useEffect(() => {
-    if (sku && !mockProducts.some(p => p.sku === sku)) {
+    if (companyId) {
+      navigate(`/${companyId}`)
+    } else {
       navigate("/")
     }
-  }, [sku, navigate])
+  }
 
-  // Render just the modal without any container div
+  if (!product) return null
+
   return (
-    <ProductModal 
-      product={product} 
-      isOpen={!!product} 
-      onClose={handleModalClose} 
+    <ProductModal
+      product={product}
+      isOpen={!!product}
+      onClose={handleModalClose}
     />
   )
 }

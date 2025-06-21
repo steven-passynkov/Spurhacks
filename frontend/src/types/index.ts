@@ -35,27 +35,24 @@ export interface Product {
 }
 
 export interface StoreConfig {
-    theme: {
-        primaryColor: string
-        backgroundColor: string
-        textColor: string
-        accentColor: string
+    companyId?: string
+    branding?: {
+        logoUrl?: string
     }
-    welcome: {
-        title: string
-        subtitle: string
-        showBotIcon: boolean
+    theme?: {
+        primaryColor?: string
+        backgroundColor?: string
+        textColor?: string
+        accentColor?: string
     }
-    chat: {
-        placeholder: string
-        enableAudio: boolean
-        autoPlayAudio: boolean
+    chat?: {
+        placeholder?: string
     }
-    products: {
-        showOnHomepage: boolean
-        homepageLimit: number
-        showRatings: boolean
-        showBrand: boolean
-        currency: string
+    products?: {
+        currency?: string
+    }
+    welcome?: {
+        title?: string
+        subtitle?: string
     }
 }

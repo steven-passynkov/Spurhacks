@@ -17,12 +17,24 @@ export class Spurhack extends Stack {
     constructor(scope: Construct, id: string, props?: StackProps) {
         super(scope, id, props);
 
-        const mediaBucket = new s3.Bucket(this, 'MediaBucket', {
-            bucketName: 'spurhacks-media',
+        const companyBucket = new s3.Bucket(this, 'CompanyBucket', {
+            bucketName: 'spurhacks-company',
             publicReadAccess: true,
             blockPublicAccess: s3.BlockPublicAccess.BLOCK_ACLS_ONLY,
             removalPolicy: RemovalPolicy.DESTROY,
-            autoDeleteObjects: true
+            autoDeleteObjects: true,
+            cors: [
+                {
+                    allowedOrigins: ['*'],
+                    allowedMethods: [
+                        s3.HttpMethods.GET,
+                        s3.HttpMethods.HEAD,
+                    ],
+                    allowedHeaders: ['*'],
+                    exposedHeaders: [],
+                    maxAge: 3000,
+                }
+            ]
         });
 
         const opensearchDomain = new Domain(this, 'spurhacks', {
@@ -118,7 +130,7 @@ export class Spurhack extends Stack {
             environment: {
                 OPENSEARCH_COLLECTION_ENDPOINT: `https://${opensearchDomain.domainEndpoint}`,
                 INDEX_NAME: 'spurhacks',
-                S3_BUCKET: mediaBucket.bucketName,
+                S3_BUCKET: companyBucket.bucketName,
                 GOOGLE_SERVICE_ACCOUNT: process.env.GOOGLE_SERVICE_ACCOUNT || '',
                 GOOGLE_PROJECT_ID: process.env.GOOGLE_PROJECT_ID || ''
             }
@@ -129,7 +141,7 @@ export class Spurhack extends Stack {
         searchResource.addMethod('GET', searchIntegration);
         searchResource.addMethod('POST', searchIntegration);
 
-        mediaBucket.grantReadWrite(searchFn);
+        companyBucket.grantReadWrite(searchFn);
 
         opensearchDomain.grantReadWrite(searchFn);
 

@@ -3,12 +3,11 @@ import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import type { Product } from "../types"
 import { ProductCard } from "./ProductCard"
+import { useNavigate, useParams } from "react-router-dom"
 
 interface ProductCarouselProps {
     products: Product[]
     onProductClick: (product: Product) => void
-    showBrand?: boolean
-    showRatings?: boolean
     currency?: string
     compact?: boolean
 }
@@ -16,14 +15,20 @@ interface ProductCarouselProps {
 export const ProductCarousel = ({
     products,
     onProductClick,
-    showBrand = true,
-    showRatings = true,
     currency = "USD",
     compact = false,
 }: ProductCarouselProps) => {
     const [currentIndex, setCurrentIndex] = useState(0)
     const itemsPerView = compact ? 3 : 4
     const maxIndex = Math.max(0, products.length - itemsPerView)
+    const navigate = useNavigate()
+    const { companyId } = useParams<{ companyId: string }>()
+
+    const handleProductClick = (product: Product) => {
+        if (companyId) {
+            navigate(`/${companyId}/product/${product.sku}`)
+        }
+    }
 
     const goToPrevious = () => {
         setCurrentIndex((prev) => Math.max(0, prev - 1))
@@ -33,7 +38,6 @@ export const ProductCarousel = ({
         setCurrentIndex((prev) => Math.min(maxIndex, prev + 1))
     }
 
-    // Always render as a single horizontal row, scrollable if needed
     return (
         <div className="relative">
             {products.length > itemsPerView && (
@@ -80,9 +84,7 @@ export const ProductCarousel = ({
                         <div key={product.sku} className="flex-shrink-0 w-64">
                             <ProductCard
                                 product={product}
-                                onClick={onProductClick}
-                                showBrand={showBrand}
-                                showRatings={showRatings}
+                                onClick={handleProductClick}
                                 currency={currency}
                                 compact={compact}
                             />
