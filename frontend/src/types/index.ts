@@ -1,0 +1,58 @@
+export interface Message {
+    id: string
+    content: string
+    sender: "user" | "system"
+    timestamp: Date
+    audioUrl?: string
+    products?: Product[]
+}
+
+export interface Product {
+    sku: string
+    companyId: string
+    name: string
+    description: string
+    category: string
+    brand: string
+    images: string[]
+    price: number
+    currency: string
+    createdAt: string
+    updatedAt: string
+    rating?: number
+    reviews?: number
+    inStock?: boolean
+    colors?: string[]
+    sizes?: string[]
+    location?: {
+        aisle: string
+        section: string
+        shelf: string
+    }
+}
+
+export interface StoreConfig {
+    theme: {
+        primaryColor: string
+        backgroundColor: string
+        textColor: string
+        accentColor: string
+    }
+    welcome: {
+        title: string
+        subtitle: string
+        showBotIcon: boolean
+    }
+    chat: {
+        placeholder: string
+        enableAudio: boolean
+        autoPlayAudio: boolean
+    }
+    products: {
+        showOnHomepage: boolean
+        homepageLimit: number
+        showRatings: boolean
+        showBrand: boolean
+        currency: string
+    }
+}
