@@ -11,8 +11,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from google.oauth2 import service_account
 from requests_aws4auth import AWS4Auth
 
-from api.live_llm_api import llm_live_api
-from utils.global_store import GlobalStore
+from .api.live_llm_api import llm_live_api
+from .utils.global_store import GlobalStore
 
 load_dotenv()
 

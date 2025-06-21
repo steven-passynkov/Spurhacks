@@ -1,13 +1,13 @@
 import asyncio
 import base64
 import vertexai
-from constants.prompts import SYSTEM_INSTRUCTION_TEMPLATE
+# from constants.prompts import SYSTEM_INSTRUCTION_TEMPLATE
 from datetime import datetime
-from enums.message_types import MessageType
+from ..enums.message_types import MessageType
 from google import genai
 from google.genai.types import Content, LiveConnectConfig, Modality, Part, SpeechConfig, VoiceConfig, \
     PrebuiltVoiceConfig, RealtimeInputConfig, AutomaticActivityDetection, StartSensitivity, EndSensitivity
-from tools.tools import RetrieveProductsTool
+from ..tools.retrieve_products_tool import RetrieveProductsTool
 from typing import Any, Optional
 
 
@@ -19,15 +19,15 @@ class LLMApi:
         self.session = None
 
         company_info = self.store.get("company_info", {})
-        formatted_instruction = SYSTEM_INSTRUCTION_TEMPLATE.format(
-            company_name=company_info.get("companyName"),
-            industry=company_info.get("industry"),
-            timezone=company_info.get("timezone"),
-            current_datetime=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        )
+        # formatted_instruction = SYSTEM_INSTRUCTION_TEMPLATE.format(
+        #     company_name=company_info.get("companyName"),
+        #     industry=company_info.get("industry"),
+        #     timezone=company_info.get("timezone"),
+        #     current_datetime=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        # )
 
         self.base_config = {
-            "system_instruction": formatted_instruction,
+            # "system_instruction": formatted_instruction,
             "tools": [{"function_declarations": [
                 RetrieveProductsTool.set_tool_config()
             ]}],
@@ -215,7 +215,7 @@ class LLMApi:
             }
 
 
-from utils.global_store import GlobalStore
+from ..utils.global_store import GlobalStore
 
 store = GlobalStore()
 credentials = store.get("google_credentials")

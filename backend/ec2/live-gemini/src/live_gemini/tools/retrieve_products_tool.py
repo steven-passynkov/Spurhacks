@@ -1,5 +1,5 @@
 from typing import Dict, Any
-from api.retrieve_products_api import retrieve_products_api
+from ..api.retrieve_products_api import retrieve_products_api
 
 class RetrieveProductsTool:
     @staticmethod

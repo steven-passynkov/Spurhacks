@@ -2,8 +2,8 @@ import httpx
 import os
 from dotenv import load_dotenv
 from opensearchpy import RequestsHttpConnection
-from opensearchpy.helpers.aio import AsyncOpenSearch
-from utils.global_store import GlobalStore
+from opensearchpy._async.client import AsyncOpenSearch
+from ..utils.global_store import GlobalStore
 
 load_dotenv()
 
