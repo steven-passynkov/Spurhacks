@@ -1,5 +1,3 @@
-"use client"
-
 import type { Product, StoreConfig } from "../types"
 import { ProductCarousel } from "./ProductCarousel"
 import { Bot } from "lucide-react"
