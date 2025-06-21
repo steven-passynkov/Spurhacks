@@ -23,9 +23,9 @@ class ProductAgent:
         tool_input = None
 
         async for response in self.llm_api.live_chat(initial_prompt):
-            if response.get("type") == MessageType.STATUS.value and response.get("interrupted"):
-                print("User interaction interrupted.")
-                return
+            # if response.get("type") == MessageType.STATUS.value and response.get("interrupted"):
+            #     print("User interaction interrupted.")
+            #     return
             if response.get("type") == MessageType.AUDIO.value or response.get("type") == MessageType.TEXT.value:
                 conversation_history.append({'role': 'assistant', 'content': response.get("content", "")})
                 self.global_store.set("conversation_history", conversation_history)
