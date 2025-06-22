@@ -30,9 +30,7 @@ class AgentState(TypedDict):
 async def router(llm_live_api, state: AgentState) -> Dict[str, str]:
     result = await determine_agent(llm_live_api, state["request"])
 
-    print(f"Router determined agent: {result['agent_type']}")
-
-    return {"agent": result["agent_type"]}
+    return {"agent": result["agent_type"], "retrieved_products": result["retrieved_products"]}
 
 
 async def process_comparison(llm_live_api, state: AgentState) -> AgentState:
