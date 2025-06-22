@@ -1,16 +1,26 @@
 import asyncio
 import base64
+import os
 import vertexai
-from ..constants.prompts import SYSTEM_INSTRUCTION_TEMPLATE
-from ..enums.message_types import MessageType
+from deepgram import (
+    DeepgramClient,
+    PrerecordedOptions,
+    FileSource,
+)
+from dotenv import load_dotenv
 from google import genai
 from google.genai.types import Content, LiveConnectConfig, Modality, Part, SpeechConfig, VoiceConfig, \
     PrebuiltVoiceConfig, RealtimeInputConfig, AutomaticActivityDetection, StartSensitivity, EndSensitivity
-from ..tools.retrieve_products_tool import RetrieveProductsTool
-from ..tools.validate_products_tool import ValidateProductsTool
 from typing import Any, Optional
 
+from ..constants.prompts import SYSTEM_INSTRUCTION_TEMPLATE
+from ..enums.message_types import MessageType
+from ..tools.agent_selector_tool import AgentSelectorTool
+from ..tools.retrieve_products_tool import RetrieveProductsTool
 from ..utils.global_store import GlobalStore
+
+load_dotenv()
+DEEPGRAM_API_KEY = os.getenv("DEEPGRAM_API_KEY")
 
 
 class LLMApi:
@@ -19,19 +29,20 @@ class LLMApi:
         self.client = genai.Client(project=project_id, location='us-central1', vertexai=True, credentials=credentials)
         self.store = GlobalStore()
         self.session = None
+        self.deepgram = DeepgramClient(api_key=DEEPGRAM_API_KEY)
 
-        company_info = self.store.get("company_info")
+        company_info = self.store.get("company_info") or {}
 
         formatted_instruction = SYSTEM_INSTRUCTION_TEMPLATE.format(
-            company_name=company_info.get("companyName"),
-            industry=company_info.get("industry")
+            company_name=company_info.get("companyName", "Unknown Company"),
+            industry=company_info.get("industry", "Unknown Industry")
         )
 
         self.base_config = {
             "system_instruction": formatted_instruction,
             "tools": [{"function_declarations": [
-                RetrieveProductsTool.set_tool_config(),
-                ValidateProductsTool.set_tool_config()
+                AgentSelectorTool.set_tool_config(),
+                RetrieveProductsTool.set_tool_config()
             ]}],
         }
         self._connection = None
@@ -49,7 +60,7 @@ class LLMApi:
                     config = LiveConnectConfig(
                         response_modalities=[modality],
                         tools=self.base_config["tools"],
-                        # system_instruction=self.base_config["system_instruction"],
+                        system_instruction=self.base_config["system_instruction"],
                         speech_config=SpeechConfig(
                             voice_config=VoiceConfig(
                                 prebuilt_voice_config=PrebuiltVoiceConfig(
@@ -107,6 +118,53 @@ class LLMApi:
             })
         return responses
 
+    async def transcribe_audio(self, base64_str: str, mime_type: str) -> str:
+        try:
+            audio_data = base64.b64decode(base64_str)
+
+            sample_rate = 16000
+            if ";rate=" in mime_type:
+                try:
+                    sample_rate = int(mime_type.split(";rate=")[1])
+                except:
+                    pass
+
+            payload: FileSource = {
+                "buffer": audio_data,
+                "mimetype": "audio/l16",
+                "encoding": "linear16",
+                "sample_rate": sample_rate,
+                "channels": 1,
+                "bits_per_sample": 16
+            }
+
+            options = PrerecordedOptions(
+                model="nova-3",
+                smart_format=True,
+                language="en-US",
+                encoding="linear16",
+                sample_rate=sample_rate
+            )
+            response = self.deepgram.listen.rest.v("1").transcribe_file(
+                payload,
+                options
+            )
+
+            if (response and hasattr(response, 'results') and
+                    hasattr(response.results, 'channels') and
+                    len(response.results.channels) > 0 and
+                    len(response.results.channels[0].alternatives) > 0):
+                transcription = response.results.channels[0].alternatives[0].transcript
+                print(f"Transcription: {transcription}")
+                return transcription
+
+            raise Exception("No transcription received")
+
+        except Exception as e:
+            print(f"Transcription Error: {e}")
+            print(f"Input mime_type was: {mime_type}")
+            raise
+
     async def live_chat(
             self,
             prompt: str
@@ -162,6 +220,8 @@ class LLMApi:
                                             hasattr(part.inline_data, 'data') and
                                             part.inline_data.data):
                                         new_transcript = current_assistant_message[len(last_sent_transcript):].strip()
+                                        if new_transcript:
+                                            print(f"New transcript: {new_transcript}")
                                         if not new_transcript:
                                             new_transcript = None
 

@@ -1,12 +1,10 @@
 import { useEffect, useState } from "react"
 import type { Product } from "../types"
-import { useProductCache } from "./useProductCache"
 
 export function useRandomProducts(companyId?: string) {
     const [products, setProducts] = useState<Product[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<Error | null>(null)
-    const { cacheProduct } = useProductCache()
 
     useEffect(() => {
         if (!companyId) {
@@ -23,7 +21,6 @@ export function useRandomProducts(companyId?: string) {
         })
             .then((res) => res.json())
             .then((data: Product[]) => {
-                data.forEach(cacheProduct)
                 const shuffled = data.sort(() => 0.5 - Math.random())
                 setProducts(shuffled.slice(0, 5))
                 setLoading(false)
@@ -32,7 +29,7 @@ export function useRandomProducts(companyId?: string) {
                 setError(err)
                 setLoading(false)
             })
-    }, [companyId, cacheProduct])
+    }, [companyId])
 
     return { products, loading, error }
 }

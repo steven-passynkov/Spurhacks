@@ -1,14 +1,21 @@
-import { BrowserRouter, Routes, Route, useParams } from "react-router-dom"
-import Home from "./pages/Home.tsx"
-import Product from "./pages/Product.tsx"
-import './App.css'
+import { BrowserRouter, Routes, Route, useParams } from "react-router-dom";
+import { AppProvider } from "./context/AppContext";
+import Home from "./pages/Home.tsx";
+import Product from "./pages/Product.tsx";
+import './App.css';
+import { useChatWebSocket } from "./hooks/useChatWebSocket";
 
 function RequireCompanyId({ children }: { children: React.ReactNode }) {
-  const { companyId } = useParams()
+  const { companyId } = useParams();
+  const { lastMessage } = useChatWebSocket(companyId || 'waggin-tails');
   if (!companyId) {
-    return <Home noCompany />
+    return <Home noCompany />;
   }
-  return <>{children}</>
+  return (
+    <AppProvider companyId={companyId} lastMessage={lastMessage}>
+      {children}
+    </AppProvider>
+  );
 }
 
 function App() {
@@ -25,7 +32,7 @@ function App() {
         <Route path="*" element={<Home noCompany />} />
       </Routes>
     </BrowserRouter>
-  )
+  );
 }
 
-export default App
+export default App;

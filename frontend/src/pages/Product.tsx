@@ -1,13 +1,14 @@
 import { useParams, useNavigate } from "react-router-dom"
 import { useEffect } from "react"
 import { ProductModal } from "../components/ProductModal"
-import { useProductCache } from "../hooks/useProductCache"
+import { useAppContext } from "../context/AppContext"
 
 function Product() {
+  const { randomProducts } = useAppContext()
   const { sku, companyId } = useParams<{ sku: string; companyId: string }>()
   const navigate = useNavigate()
-  const { getProductBySku } = useProductCache()
-  const product = getProductBySku(sku)
+
+  const product = randomProducts.find((p) => p.sku === sku)
 
   useEffect(() => {
     if (!product) {

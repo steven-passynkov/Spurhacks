@@ -14,7 +14,7 @@ AWS_SECRET_KEY = os.getenv("AWS_SECRET_KEY")
 AWS_REGION = os.getenv("AWS_REGION")
 
 
-async def retrieve_products_api(query: str):
+async def retrieve_products_api(query: str, k: int):
     store = GlobalStore()
     google_access_token = store.get("google_access_token")
 
@@ -51,7 +51,7 @@ async def retrieve_products_api(query: str):
     company_id = store.get("company_info")["companyId"]
 
     query_body = {
-        "size": 4,
+        "size": k,
         "query": {
             "bool": {
                 "must": [
@@ -59,7 +59,7 @@ async def retrieve_products_api(query: str):
                         "knn": {
                             "embedding": {
                                 "vector": embedding,
-                                "k": 4
+                                "k": k
                             }
                         }
                     }
@@ -86,6 +86,8 @@ async def retrieve_products_api(query: str):
             response.raise_for_status()
             data = response.json()
             results = data['hits']['hits']
+
+            print(results)
 
             for hit in results:
                 if "_source" in hit and "embedding" in hit["_source"]:

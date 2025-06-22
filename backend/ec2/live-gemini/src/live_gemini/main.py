@@ -12,9 +12,9 @@ from google.oauth2 import service_account
 from requests_aws4auth import AWS4Auth
 from google.genai.types import Modality
 from pydantic import BaseModel
+from .graph import run_graph
 
 from .api.live_llm_api import LLMApi
-from .agent import ProductAgent
 from .utils.global_store import GlobalStore
 
 load_dotenv()
@@ -120,7 +120,6 @@ async def websocket_endpoint(websocket: WebSocket):
     active_connections.append(websocket)
 
     llm_live_api = LLMApi(credentials, project_id)
-    product_agent = ProductAgent(llm_live_api)
 
     try:
         await llm_live_api.get_session(modality=Modality.AUDIO)
@@ -135,10 +134,17 @@ async def websocket_endpoint(websocket: WebSocket):
         while True:
             try:
                 data = await websocket.receive_json()
-                message_request = MessageRequest(**data)
-                async for chunk in product_agent.answer_user(message_request.message):
+                message_request = MessageRequest(**data['request'])
+
+                text = message_request.message.strip()
+
+                if message_request.mimeType.startswith('audio/'):
+                    text = await llm_live_api.transcribe_audio(message_request.message, message_request.mimeType)
+
+                # Pass llm_live_api and text to run_graph
+                async for chunk in run_graph(llm_live_api, text):
                     if chunk and isinstance(chunk, dict):
-                        await websocket.send_text(json.dumps(chunk))
+                        await websocket.send_json({"response": chunk["response"]})
             except WebSocketDisconnect:
                 break
             except Exception as e:

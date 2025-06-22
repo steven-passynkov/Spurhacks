@@ -13,16 +13,16 @@ interface ProductCarouselProps {
 }
 
 export const ProductCarousel = ({
-    products,
-    onProductClick,
-    currency = "USD",
-    compact = false,
-}: ProductCarouselProps) => {
+                                    products,
+                                    onProductClick,
+                                    currency = "USD",
+                                    compact = false,
+                                }: ProductCarouselProps) => {
     const [currentIndex, setCurrentIndex] = useState(0)
     const itemsPerView = compact ? 3 : 4
     const maxIndex = Math.max(0, products.length - itemsPerView)
     const navigate = useNavigate()
-    const { companyId } = useParams<{ companyId: string }>()
+    const {companyId} = useParams<{ companyId: string }>()
 
     const handleProductClick = (product: Product) => {
         if (companyId) {
@@ -50,7 +50,7 @@ export const ProductCarousel = ({
                             disabled={currentIndex === 0}
                             className="h-8 w-8 p-0"
                         >
-                            <ChevronLeft className="h-4 w-4" />
+                            <ChevronLeft className="h-4 w-4"/>
                         </Button>
                         <Button
                             variant="outline"
@@ -59,7 +59,7 @@ export const ProductCarousel = ({
                             disabled={currentIndex >= maxIndex}
                             className="h-8 w-8 p-0"
                         >
-                            <ChevronRight className="h-4 w-4" />
+                            <ChevronRight className="h-4 w-4"/>
                         </Button>
                     </div>
                     <div className="text-sm text-gray-500">
@@ -74,9 +74,9 @@ export const ProductCarousel = ({
                     style={
                         products.length > itemsPerView
                             ? {
-                                  transform: `translateX(-${currentIndex * (compact ? 16.25 : 16.25)}rem)`,
-                                  transition: "transform 0.3s",
-                              }
+                                transform: `translateX(-${currentIndex * (compact ? 16.25 : 16.25)}rem)`,
+                                transition: "transform 0.3s",
+                            }
                             : undefined
                     }
                 >

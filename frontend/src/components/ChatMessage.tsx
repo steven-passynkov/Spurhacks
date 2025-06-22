@@ -2,8 +2,7 @@ import type { Message } from "../types"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Bot, User, Volume2 } from "lucide-react"
-import { useParams } from "react-router-dom"
-import { useCompanyConfig } from "../hooks/useCompanyConfig"
+import { useAppContext } from "../context/AppContext"
 
 interface ChatMessageProps {
     message?: Message
@@ -15,14 +14,13 @@ interface ChatMessageProps {
 }
 
 export const ChatMessage = ({
-    message,
-    themeClasses,
-    isTyping = false,
-}: ChatMessageProps) => {
-    const { companyId } = useParams()
-    const { config } = useCompanyConfig(companyId)
+                                message,
+                                themeClasses,
+                                isTyping = false,
+                            }: ChatMessageProps) => {
+    const {config} = useAppContext()
 
-    const logoUrl = config?.branding?.logoUrl
+    const logoUrl = config?.branding?.logoUrl || null
 
     const isSystem = isTyping || (message && message.sender === "system")
 
@@ -32,8 +30,8 @@ export const ChatMessage = ({
                 <Avatar className="w-8 h-8 bg-blue-100">
                     <AvatarFallback>
                         {logoUrl
-                            ? <img src={logoUrl} alt="Logo" className="w-6 h-6 object-contain" />
-                            : <Bot className={`w-4 h-4 ${themeClasses.accent}`} />
+                            ? <img src={logoUrl} alt="Logo" className="w-6 h-6 object-contain"/>
+                            : <Bot className={`w-4 h-4 ${themeClasses.accent}`}/>
                         }
                     </AvatarFallback>
                 </Avatar>
@@ -45,11 +43,11 @@ export const ChatMessage = ({
                         <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
                         <div
                             className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                            style={{ animationDelay: "0.1s" }}
+                            style={{animationDelay: "0.1s"}}
                         ></div>
                         <div
                             className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                            style={{ animationDelay: "0.2s" }}
+                            style={{animationDelay: "0.2s"}}
                         ></div>
                     </div>
                 </div>
@@ -67,7 +65,7 @@ export const ChatMessage = ({
                                 }}
                                 className="p-1 h-auto min-w-0"
                             >
-                                <Volume2 className="w-4 h-4" />
+                                <Volume2 className="w-4 h-4"/>
                             </Button>
                         )}
                     </div>
@@ -83,7 +81,7 @@ export const ChatMessage = ({
             {message?.sender === "user" && (
                 <Avatar className="w-8 h-8 bg-gray-100">
                     <AvatarFallback>
-                        <User className="w-4 h-4 text-gray-600" />
+                        <User className="w-4 h-4 text-gray-600"/>
                     </AvatarFallback>
                 </Avatar>
             )}
