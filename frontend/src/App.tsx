@@ -27,7 +27,7 @@ export default function App() {
     }
 
     setConnectionStatus("connecting")
-    ws.current = new WebSocket("ws://localhost:8000")
+    ws.current = new WebSocket("ws://3.239.107.179:8000")
 
     ws.current.onopen = () => {
       setIsConnected(true)
